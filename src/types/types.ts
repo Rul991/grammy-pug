@@ -10,6 +10,10 @@ export type PugOptions = {
     cache?: boolean
 }
 
-export type PugFlavor = SessionFlavor<{__lang: string | undefined}> & {
+export type PugSessionData = {
+    __lang?: string
+}
+
+export type PugFlavor = SessionFlavor<PugSessionData> & {
     t: (key: string, variables?: LocalsObject) => string,
 }
