@@ -1,0 +1,5 @@
+dist/
+yarn.lock
+node_modules
+locales/
+src/dev.ts
