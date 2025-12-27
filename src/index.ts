@@ -1,5 +1,5 @@
+import { PugFlavor, PugOptions, PugSessionData } from './types/types'
 import { Context, Middleware } from 'grammy'
-import { PugFlavor, PugOptions } from './types/types'
 import { readFolder } from './utils'
 import { compileFile, compileTemplate as CompileTemplate, Options, renderFile } from 'pug'
 import { basename, join } from 'node:path'
@@ -122,3 +122,5 @@ export const pug = <C extends Context & PugFlavor>({
         next()
     }
 }
+
+export { PugFlavor, PugOptions, PugSessionData }
