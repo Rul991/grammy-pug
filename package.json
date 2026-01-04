@@ -1,6 +1,6 @@
 {
     "name": "grammy-pug",
-    "version": "1.0.3",
+    "version": "1.0.4",
     "scripts": {
         "dev": "npx tsx watch src/dev.ts",
         "start": "npx tsx src/dev.ts",

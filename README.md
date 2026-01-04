@@ -13,8 +13,7 @@ Render dynamic, locale-specific messages with ease using Pug’s powerful templa
 - **File‑based caching** – Templates are compiled and cached for fast repeated use (optional).
 - **Lightweight** – Minimal dependencies, fast filesystem-based loading.
 - **TypeScript ready** – Includes full type definitions.
-
----
+- **Recursive template lookup** – Automatically discovers nested template files in locale directories.
 
 ## Installation
 
@@ -23,8 +22,6 @@ npm install grammy-pug
 # or
 yarn add grammy-pug
 ```
-
----
 
 ## Quick Start
 
@@ -50,13 +47,13 @@ locales/
 3. **Set up the plugin in your bot**:
 
 ```ts
-import { Bot, Context, session } from "grammy";
-import { pug, PugFlavor } from "grammy-pug";
+import { Bot, Context, session } from 'grammy';
+import { pug, PugFlavor } from 'grammy-pug';
 
 // Extend your context type
 type MyContext = Context & PugFlavor;
 
-const bot = new Bot<MyContext>("BOT_TOKEN");
+const bot = new Bot<MyContext>('BOT_TOKEN');
 
 // Initialize session (required for storing language preference)
 bot.use(session({ initial: () => ({ __lang: undefined }) }));
@@ -64,31 +61,30 @@ bot.use(session({ initial: () => ({ __lang: undefined }) }));
 // Use the plugin
 bot.use(
   pug({
-    folder: "locales",          // path to locale folder (optional, default: "locales")
-    defaultLocale: "en",        // fallback locale (required)
-    isDebug: false,             // enable debug logs (optional)
-    globals: { botName: "MyBot" }, // shared variables for all templates (optional)
+    folder: 'locales',          // path to locale folder (optional, default: 'locales')
+    defaultLocale: 'en',        // fallback locale (required)
+    debug: 'none',              // debug mode (optional)
+    globals: { botName: 'MyBot' }, // shared variables for all templates (optional)
     cache: true,                // cache compiled templates (optional, default: true)
+    showMismatches: false,      // show missing templates across locales (optional)
   })
 );
 
 // Use in handlers
-bot.command("start", async (ctx) => {
-  const name = ctx.from?.first_name ?? "User";
-  const text = ctx.t("welcome", { name, count: 5 });
+bot.command('start', async (ctx) => {
+  const name = ctx.from?.first_name ?? 'User';
+  const text = ctx.t('welcome', { name, count: 5 });
   await ctx.reply(text);
 });
 
 // Switch language example
-bot.command("setlang_ru", async (ctx) => {
-  ctx.session.__lang = "ru";
-  await ctx.reply("Language switched to Russian!");
+bot.command('setlang_ru', async (ctx) => {
+  ctx.session.__lang = 'ru';
+  await ctx.reply('Language switched to Russian!');
 });
 
 bot.start();
 ```
-
----
 
 ## API
 
@@ -96,24 +92,25 @@ bot.start();
 
 #### Options
 
-| Option          | Type           | Default        | Description                                                                 |
-|-----------------|----------------|----------------|-----------------------------------------------------------------------------|
-| `folder`        | `string`       | `"locales"`    | Path to folder containing locale subdirectories.                            |
-| `defaultLocale` | `string`       | **(required)** | Fallback locale if user’s language is not supported.                        |
-| `isDebug`       | `boolean`      | `false`        | Enable debug logging (prints context and rendering info).                   |
-| `globals`       | `LocalsObject` | `{}`           | Shared variables accessible in all Pug templates.                           |
-| `filters`       | `Record<string, (text: string, options: object) => string>` | `{}` | Custom Pug filters.                         |
-| `cache`         | `boolean`      | `true`         | Cache compiled templates for faster repeated rendering.                     |
+| Option           | Type                                                        | Default        | Description                                                                                        |
+| ---------------- | ----------------------------------------------------------- | -------------- | -------------------------------------------------------------------------------------------------- |
+| `folder`         | `string`                                                    | `'locales'`    | Path to folder containing locale subdirectories.                                                   |
+| `defaultLocale`  | `string`                                                    | **(required)** | Fallback locale if user’s language is not supported.                                               |
+| `debug`          | `'none' \| 'pug' \| 'plugin' \| 'all'`                      | `'none'`       | Enable debug logging of template compilation, plugin internals, or both.                           |
+| `globals`        | `LocalsObject`                                              | `{}`           | Shared variables accessible in all Pug templates.                                                  |
+| `filters`        | `Record<string, (text: string, options: object) => string>` | `{}`           | Custom Pug filters.                                                                                |
+| `cache`          | `boolean`                                                   | `true`         | Cache compiled templates for faster repeated rendering.                                            |
+| `showMismatches` | `boolean`                                                   | `false`        | Show missing templates across locales (automatically enabled in debug mode `'plugin'` or `'all'`). |
 
 ### Context Extension
 
 The plugin adds a `t(key, variables?)` method to your context:
 
 ```ts
-ctx.t("welcome", { name: "Alice", count: 3 })
+ctx.t('welcome', { name: 'Alice', count: 3 })
 ```
 
-- `key` – Template filename without extension (e.g., `"welcome"`).
+- `key` – Template filename without extension (e.g., `'welcome'`). Supports nested paths like `'subfolder/template'`.
 - `variables` – Optional object of template variables (merged with `globals`).
 
 ### Language Detection Order
@@ -122,9 +119,7 @@ ctx.t("welcome", { name: "Alice", count: 3 })
 2. `ctx.from.language_code`
 3. Falls back to `defaultLocale`
 
----
-
-## 🧩 Template Examples
+## Template Examples
 
 **Simple variable interpolation** (`locales/en/hello.pug`):
 
@@ -143,7 +138,7 @@ else
   | No active users.
 ```
 
-**Using globals** (set via `globals: { site: "example.com" }`):
+**Using globals** (set via `globals: { site: 'example.com' }`):
 
 ```pug
 | Visit #{site} for more info.
@@ -158,7 +153,17 @@ else
 | /lang  - Change language
 ```
 
----
+**Nested template structure** (supports subdirectories):
+
+```
+locales/en/
+├── common/
+│   ├── buttons.pug
+│   └── footer.pug
+└── main.pug
+```
+
+Usage: `ctx.t('common/buttons', { ... })`
 
 ## Advanced Usage
 
@@ -168,7 +173,7 @@ You can define custom Pug filters in the options:
 
 ```ts
 pug({
-  defaultLocale: "en",
+  defaultLocale: 'en',
   filters: {
     uppercase: (text) => text.toUpperCase(),
     reverse: (text) => text.split('').reverse().join(''),
@@ -182,19 +187,71 @@ Then use them in templates:
 | #{message | uppercase}
 ```
 
+### Debug Modes
+
+The plugin offers four debug modes:
+
+```ts
+pug({
+  defaultLocale: 'en',
+  debug: 'none',      // No debug output (default)
+  // debug: 'pug',       // Show Pug compilation debug info
+  // debug: 'plugin',    // Show plugin internals (loaded locales, mismatches)
+  // debug: 'all',       // Show both Pug and plugin debug info
+})
+```
+
 ### Disabling Cache (Development)
 
 For development, you can disable caching to see template changes instantly:
 
 ```ts
 pug({
-  defaultLocale: "en",
+  defaultLocale: 'en',
   cache: false, // recompile on every render
-  isDebug: true,
 })
 ```
 
----
+### Template Mismatch Detection
+
+Enable `showMismatches: true` or set `debug` to `'plugin'`/`'all'` to see which templates are missing in which locales. This helps keep your localization files synchronized.
+
+Example output:
+```json
+{
+  "title": "grammy-pug's debug output",
+  "mismatches": {
+    "en": ["missing_template"],
+    "ru": ["another_missing"]
+  }
+}
+```
+
+## TypeScript Support
+
+Full TypeScript definitions are included. Import the types to extend your context:
+
+```ts
+import { PugFlavor, PugOptions, PugSessionData } from 'grammy-pug';
+
+type MyContext = Context & PugFlavor & PugSessionData;
+
+// Use in your bot configuration
+const options: PugOptions = {
+  defaultLocale: 'en',
+  folder: 'locales',
+  debug: 'none',
+};
+```
+
+## Error Handling
+
+If a template is not found in the selected locale, an error is thrown:
+```
+Error: File 'welcome' in locale 'en' not exist!
+```
+
+Make sure your template files exist and are named correctly. The plugin automatically scans directories recursively for `.pug` files.
 
 ## License
 

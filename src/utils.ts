@@ -1,42 +1,58 @@
 import { readdirSync } from 'fs'
 import { ReadFolderOptions } from './types/utils'
+import { join } from 'path'
 
 export const readFolder = (path: string, options?: ReadFolderOptions): string[] => {
     const {
         types = ['directory', 'file'],
         fileExtensions,
+        recursive = false,
+        prefix = ''
     } = options ?? {}
 
     try {
         const files = readdirSync(
-            path, 
+            path,
             {
                 withFileTypes: true,
                 encoding: 'utf-8'
             }
         )
+        const result: string[] = []
 
-        return files
-            .filter(file => {
-                let isFiltered = false
+        for (const file of files) {
+            const fullFilename = join(prefix, file.name)
+            let isFiltered = false
 
-                for (const type of types) {
-                    if(type == 'directory' && file.isDirectory()) isFiltered = true
-                    else if(type == 'file' && file.isFile()) isFiltered = true
-
-                    if(!isFiltered) return false
+            for (const type of types) {
+                if ((recursive || type == 'directory') && file.isDirectory()) {
+                    if (recursive) {
+                        result.push(...readFolder(
+                            join(path, file.name),
+                            {
+                                ...options,
+                                prefix: fullFilename
+                            }
+                        ))
+                    }
+                    else isFiltered = true
                 }
+                else if (type == 'file' && file.isFile()) {
+                    isFiltered = fileExtensions?.some(
+                        v => file.name.endsWith(`.${v}`)
+                    ) ?? true
+                }
+            }
 
-                isFiltered = fileExtensions?.some(
-                    v => file.name.endsWith(`.${v}`)
-                ) ?? true
+            if (isFiltered) {
+                result.push(fullFilename)
+            }
+        }
 
-                return isFiltered
-            })
-            .map(v => v.name)
+        return result
 
     }
-    catch(e) {
+    catch (e) {
         console.error(e)
         return []
     }
